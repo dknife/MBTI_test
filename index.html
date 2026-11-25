@@ -1,62 +1,387 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pandora</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>슬리더링크 퍼즐</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px; color: #2c3e50;
+  }
+  .game {
+    background: #fff; border-radius: 20px; padding: 28px 32px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 100%;
+  }
+  h1 { margin: 0 0 4px; font-size: 26px; text-align: center; color: #1e3c72; }
+  .subtitle { margin: 0 0 18px; text-align: center; font-size: 14px; color: #7f8c8d; }
+  .board-wrap { position: relative; display: inline-block; }
+  canvas {
+    display: block; border-radius: 12px; background: #fafafa;
+    cursor: pointer; touch-action: none;
+  }
+  .overlay {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.95);
+    border-radius: 12px; display: flex; justify-content: center; align-items: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .overlay-card { text-align: center; }
+  .overlay-emoji { font-size: 56px; margin-bottom: 8px; }
+  .overlay h2 { margin: 0 0 6px; font-size: 24px; color: #27ae60; }
+  .overlay p { margin: 0 0 20px; color: #7f8c8d; font-size: 14px; }
+  .overlay button {
+    padding: 12px 28px; border: none; border-radius: 10px;
+    background: #3498db; color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .overlay button:hover { background: #2980b9; }
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .controls button {
+    padding: 10px 20px; border: none; border-radius: 8px;
+    background: #ecf0f1; color: #2c3e50; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .controls button:hover { background: #dfe6e9; }
+  .controls button.active { background: #3498db; color: #fff; }
+  .help {
+    margin-top: 18px; padding-top: 16px; border-top: 1px solid #ecf0f1;
+    font-size: 13px; color: #7f8c8d; line-height: 1.7; max-width: 430px;
+  }
+  .help p { margin: 0; }
+  .help b { color: #2c3e50; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>💎 Pandora 📦</h1>
-    <div class="status-bar">
-      <span id="level-display">Level 1</span>
-      <button id="hint-btn" title="다음에 열 보석 한 곳을 알려줘요">💡 힌트</button>
-      <button id="sound-btn" title="소리 켜기/끄기" aria-label="소리 끄기">🔊</button>
-      <button id="restart-btn" title="이 판 다시 시작">↺ Restart</button>
-      <button id="reset-btn" title="처음부터 새로 시작">레벨 1에서 다시 시작</button>
-    </div>
-    <div id="banner" class="hidden">
-      <span id="banner-msg"></span>
-      <button id="banner-btn">Next Level ▶</button>
-    </div>
-  </header>
-
-  <main>
-    <div id="board"></div>
-    <div class="board-footer">
-      <span id="lives-display">❤️❤️❤️</span>
-    </div>
-    <div class="help">
-      <div class="help-box">
-        <strong>드래그</strong>
-        <span>그리드 회전</span>
+<div class="game">
+  <h1>슬리더링크 퍼즐</h1>
+  <p class="subtitle">숫자만큼 선을 긋고, 하나의 닫힌 고리를 완성하세요.</p>
+  <div class="board-wrap">
+    <canvas id="board"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="overlay-card">
+        <div class="overlay-emoji">🎉</div>
+        <h2>축하합니다!</h2>
+        <p>퍼즐을 완성했습니다!</p>
+        <button onclick="resetGame()">다시 풀기</button>
       </div>
-      <div class="help-box">
-        <strong>길게 눌러 드래그</strong>
-        <span>✘ 없음 마킹</span>
-      </div>
-      <div class="help-box">
-        <strong>더블클릭</strong>
-        <span>상자 열어 보석 찾기</span>
-      </div>
-      <div class="help-box">
-        <strong>핀치 / 휠</strong>
-        <span>확대 · 축소</span>
-      </div>
-    </div>
-    <p class="rules">각 행에 보석 한 개, 각 열에 보석 한 개, 각 색깔 영역에 보석 한 개, 보석 옆에는 보석이 있을 수 없어요!</p>
-    <p class="credit">동명대학교 게임학부 강영민</p>
-  </main>
-
-  <div id="overlay" class="hidden">
-    <div class="overlay-box">
-      <h2 id="overlay-title"></h2>
-      <p id="overlay-message"></p>
-      <button id="overlay-btn"></button>
     </div>
   </div>
+  <div class="controls">
+    <button onclick="resetGame()">초기화</button>
+    <button id="modeBtn" onclick="toggleMode()">X 표시 모드 (터치용)</button>
+  </div>
+  <div class="help">
+    <p><b>왼쪽 클릭/드래그</b> — 선 긋기</p>
+    <p><b>오른쪽 클릭/드래그</b> — X 표시 (선이 지나가지 않음)</p>
+    <p>숫자는 해당 칸을 둘러싼 4개의 선 중 사용된 선의 개수입니다.</p>
+  </div>
+</div>
 
-  <script type="module" src="game.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ===== 설정 =====
+  const N = 5;
+  const DOTS = N + 1;
+  const CELL = 72;
+  const PAD = 48;
+  const SIZE = PAD * 2 + CELL * N;
+
+  // 퍼즐 (0~4)
+  const PUZZLE = [
+    [0, 1, 1, 0, 0],
+    [1, 2, 2, 2, 0],
+    [1, 2, 0, 2, 1],
+    [0, 2, 2, 2, 1],
+    [0, 0, 1, 1, 0],
+  ];
+
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = SIZE * dpr;
+  canvas.height = SIZE * dpr;
+  canvas.style.width = SIZE + 'px';
+  canvas.style.height = SIZE + 'px';
+  ctx.scale(dpr, dpr);
+
+  const overlay = document.getElementById('overlay');
+  const modeBtn = document.getElementById('modeBtn');
+
+  // h[r][c] : (r,c)-(r,c+1)   r:0..N, c:0..N-1   값: 0=빈칸, 1=선, 2=X
+  // v[r][c] : (r,c)-(r+1,c)   r:0..N-1, c:0..N
+  let h, v;
+  let solved = false;
+  let drawing = null;
+  let touchMarkX = false;
+
+  const px = c => PAD + c * CELL;
+  const py = r => PAD + r * CELL;
+
+  // ===== 초기화 =====
+  function init() {
+    h = Array.from({ length: DOTS }, () => new Array(N).fill(0));
+    v = Array.from({ length: N }, () => new Array(DOTS).fill(0));
+    solved = false;
+    drawing = null;
+    overlay.classList.remove('show');
+  }
+
+  function cellCount(r, c) {
+    let n = 0;
+    if (h[r][c] === 1) n++;
+    if (h[r + 1][c] === 1) n++;
+    if (v[r][c] === 1) n++;
+    if (v[r][c + 1] === 1) n++;
+    return n;
+  }
+
+  function dotDegree(r, c) {
+    let d = 0;
+    if (c > 0 && h[r][c - 1] === 1) d++;
+    if (c < N && h[r][c] === 1) d++;
+    if (r > 0 && v[r - 1][c] === 1) d++;
+    if (r < N && v[r][c] === 1) d++;
+    return d;
+  }
+
+  // ===== 그리기 =====
+  function draw() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // 숫자
+    ctx.font = 'bold 26px -apple-system, "Noto Sans KR", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const val = PUZZLE[r][c];
+        const cnt = cellCount(r, c);
+        ctx.fillStyle = cnt > val ? '#e74c3c' : '#34495e';
+        ctx.fillText(val, px(c) + CELL / 2, py(r) + CELL / 2);
+      }
+    }
+
+    // 선과 X
+    ctx.lineCap = 'round';
+    for (let r = 0; r < DOTS; r++) {
+      for (let c = 0; c < N; c++) {
+        if (h[r][c] === 1) drawLine(px(c), py(r), px(c + 1), py(r));
+        else if (h[r][c] === 2) drawX(px(c) + CELL / 2, py(r));
+      }
+    }
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < DOTS; c++) {
+        if (v[r][c] === 1) drawLine(px(c), py(r), px(c), py(r + 1));
+        else if (v[r][c] === 2) drawX(px(c), py(r) + CELL / 2);
+      }
+    }
+
+    // 점
+    for (let r = 0; r < DOTS; r++) {
+      for (let c = 0; c < DOTS; c++) {
+        ctx.beginPath();
+        ctx.arc(px(c), py(r), 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawLine(x1, y1, x2, y2) {
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  function drawX(cx, cy) {
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = 3;
+    const s = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx - s, cy - s);
+    ctx.lineTo(cx + s, cy + s);
+    ctx.moveTo(cx + s, cy - s);
+    ctx.lineTo(cx - s, cy + s);
+    ctx.stroke();
+  }
+
+  // ===== 히트 테스트 =====
+  function segDist(mx, my, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 === 0 ? 0 : ((mx - x1) * dx + (my - y1) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(mx - (x1 + t * dx), my - (y1 + t * dy));
+  }
+
+  function getEdgeAt(mx, my) {
+    const thresh = CELL * 0.35;
+    let best = null, bestD = Infinity;
+    for (let r = 0; r < DOTS; r++)
+      for (let c = 0; c < N; c++) {
+        const d = segDist(mx, my, px(c), py(r), px(c + 1), py(r));
+        if (d < thresh && d < bestD) { bestD = d; best = { type: 'h', r, c }; }
+      }
+    for (let r = 0; r < N; r++)
+      for (let c = 0; c < DOTS; c++) {
+        const d = segDist(mx, my, px(c), py(r), px(c), py(r + 1));
+        if (d < thresh && d < bestD) { bestD = d; best = { type: 'v', r, c }; }
+      }
+    return best;
+  }
+
+  const sameEdge = (a, b) =>
+    a && b && a.type === b.type && a.r === b.r && a.c === b.c;
+
+  const getArr = e => (e.type === 'h' ? h[e.r] : v[e.r]);
+
+  // ===== 드로잉 =====
+  function startDraw(mx, my, target) {
+    if (solved) return;
+    const edge = getEdgeAt(mx, my);
+    if (!edge) return;
+    const arr = getArr(edge);
+    const cur = arr[edge.c];
+    if (cur === target) {
+      arr[edge.c] = 0;
+      drawing = { target, mode: 'erase', lastEdge: edge };
+    } else {
+      arr[edge.c] = target;
+      drawing = { target, mode: 'draw', lastEdge: edge };
+    }
+    onMove();
+  }
+
+  function continueDraw(mx, my) {
+    if (!drawing || solved) return;
+    const edge = getEdgeAt(mx, my);
+    if (!edge || sameEdge(edge, drawing.lastEdge)) return;
+    const arr = getArr(edge);
+    const newVal = drawing.mode === 'draw' ? drawing.target : 0;
+    if (arr[edge.c] !== newVal) {
+      arr[edge.c] = newVal;
+      drawing.lastEdge = edge;
+      onMove();
+    }
+  }
+
+  const endDraw = () => { drawing = null; };
+
+  function onMove() {
+    draw();
+    if (checkSolved()) {
+      solved = true;
+      setTimeout(() => overlay.classList.add('show'), 100);
+    }
+  }
+
+  // ===== 정답 판정 =====
+  function checkSolved() {
+    // 1) 숫자 조건
+    for (let r = 0; r < N; r++)
+      for (let c = 0; c < N; c++)
+        if (cellCount(r, c) !== PUZZLE[r][c]) return false;
+
+    // 2) 점 차수는 0 또는 2
+    const active = [];
+    for (let r = 0; r < DOTS; r++)
+      for (let c = 0; c < DOTS; c++) {
+        const d = dotDegree(r, c);
+        if (d !== 0 && d !== 2) return false;
+        if (d === 2) active.push([r, c]);
+      }
+    if (active.length === 0) return false;
+
+    // 3) 하나의 연결된 고리
+    const visited = new Set();
+    const stack = [active[0]];
+    visited.add(active[0][0] * DOTS + active[0][1]);
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      const nb = [];
+      if (c > 0 && h[r][c - 1] === 1) nb.push([r, c - 1]);
+      if (c < N && h[r][c] === 1) nb.push([r, c + 1]);
+      if (r > 0 && v[r - 1][c] === 1) nb.push([r - 1, c]);
+      if (r < N && v[r][c] === 1) nb.push([r + 1, c]);
+      for (const [nr, nc] of nb) {
+        const k = nr * DOTS + nc;
+        if (!visited.has(k)) { visited.add(k); stack.push([nr, nc]); }
+      }
+    }
+    return visited.size === active.length;
+  }
+
+  // ===== 이벤트 =====
+  function toLocal(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scale = SIZE / rect.width;
+    return {
+      mx: (e.clientX - rect.left) * scale,
+      my: (e.clientY - rect.top) * scale,
+    };
+  }
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  canvas.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const { mx, my } = toLocal(e);
+    const target = e.button === 2 ? 2 : 1;
+    startDraw(mx, my, target);
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!drawing) return;
+    const { mx, my } = toLocal(e);
+    continueDraw(mx, my);
+  });
+
+  window.addEventListener('mouseup', endDraw);
+
+  // 터치
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length !== 1) return;
+    const { mx, my } = toLocal(e.touches[0]);
+    startDraw(mx, my, touchMarkX ? 2 : 1);
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!drawing || e.touches.length !== 1) return;
+    const { mx, my } = toLocal(e.touches[0]);
+    continueDraw(mx, my);
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => { e.preventDefault(); endDraw(); }, { passive: false });
+
+  // ===== 공개 함수 =====
+  window.resetGame = function () {
+    init();
+    draw();
+  };
+
+  window.toggleMode = function () {
+    touchMarkX = !touchMarkX;
+    modeBtn.classList.toggle('active', touchMarkX);
+    modeBtn.textContent = touchMarkX ? 'X 표시 모드 ON' : 'X 표시 모드 (터치용)';
+  };
+
+  init();
+  draw();
+})();
+</script>
 </body>
 </html>
